@@ -6,7 +6,17 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+
+const isGmailAddress = (email: string) => /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email.trim())
+
+const passwordRequirements = (password: string) => [
+  { label: 'Minimal 8 karakter', met: password.length >= 8 },
+  { label: 'Memiliki huruf kapital (A-Z)', met: /[A-Z]/.test(password) },
+  { label: 'Memiliki huruf kecil (a-z)', met: /[a-z]/.test(password) },
+  { label: 'Memiliki angka (0-9)', met: /\d/.test(password) },
+  { label: 'Memiliki simbol (contoh: ! @ # $)', met: /[^A-Za-z0-9]/.test(password) },
+]
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -19,6 +29,13 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
   })
+  const requirements = passwordRequirements(formData.password)
+  const isPasswordValid = requirements.every(({ met }) => met)
+  const isFormValid =
+    formData.name.trim().length > 0 &&
+    isGmailAddress(formData.email) &&
+    isPasswordValid &&
+    formData.password === formData.confirmPassword
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -34,8 +51,14 @@ export default function RegisterPage() {
     setLoading(true)
 
     // Validation
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name.trim() || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Semua field wajib diisi')
+      setLoading(false)
+      return
+    }
+
+    if (!isGmailAddress(formData.email)) {
+      setError('Gunakan alamat email dengan domain @gmail.com')
       setLoading(false)
       return
     }
@@ -46,8 +69,8 @@ export default function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password minimal 6 karakter')
+    if (!isPasswordValid) {
+      setError('Password belum memenuhi seluruh persyaratan')
       setLoading(false)
       return
     }
@@ -58,7 +81,7 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.name,
-          email: formData.email,
+          email: formData.email.trim().toLowerCase(),
           password: formData.password,
         }),
       })
@@ -137,11 +160,14 @@ export default function RegisterPage() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="john@example.com"
+                placeholder="nama@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
+                pattern="[A-Za-z0-9._%+-]+@gmail\.com"
+                aria-invalid={formData.email.length > 0 && !isGmailAddress(formData.email)}
                 required
               />
+              <p className="text-xs text-muted-foreground">Wajib menggunakan email @gmail.com</p>
             </div>
 
             <div className="space-y-2">
@@ -157,7 +183,14 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
               />
-              <p className="text-xs text-muted-foreground">Minimal 6 karakter</p>
+              <ul className="space-y-1 pt-1" aria-label="Persyaratan password">
+                {requirements.map(({ label, met }) => (
+                  <li key={label} className={`flex items-center gap-2 text-xs ${met ? 'text-green-700' : 'text-muted-foreground'}`}>
+                    {met ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-3.5" />}
+                    {label}
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div className="space-y-2">
@@ -171,11 +204,17 @@ export default function RegisterPage() {
                 placeholder="••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                aria-invalid={formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword}
                 required
               />
+              {formData.confirmPassword.length > 0 && (
+                <p className={`text-xs ${formData.password === formData.confirmPassword ? 'text-green-700' : 'text-destructive'}`}>
+                  {formData.password === formData.confirmPassword ? 'Password cocok' : 'Password belum cocok'}
+                </p>
+              )}
             </div>
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading || !isFormValid} className="w-full">
               {loading ? 'Mendaftar...' : 'Daftar'}
             </Button>
 

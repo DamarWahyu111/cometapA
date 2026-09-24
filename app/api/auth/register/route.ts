@@ -6,18 +6,35 @@ import { ApiResponse, AuthResponse } from '@/lib/types'
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password, programId } = await request.json()
+    const normalizedName = typeof name === 'string' ? name.trim() : ''
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
+    const rawPassword = typeof password === 'string' ? password : ''
 
     // Validation
-    if (!name || !email || !password) {
+    if (!normalizedName || !normalizedEmail || !rawPassword) {
       return NextResponse.json(
         { success: false, error: 'Nama, email, dan password diperlukan' } as ApiResponse,
         { status: 400 }
       )
     }
 
-    if (password.length < 6) {
+    if (!/^[A-Z0-9._%+-]+@gmail\.com$/i.test(normalizedEmail)) {
       return NextResponse.json(
-        { success: false, error: 'Password minimal 6 karakter' } as ApiResponse,
+        { success: false, error: 'Gunakan alamat email dengan domain @gmail.com' } as ApiResponse,
+        { status: 400 }
+      )
+    }
+
+    const passwordIsValid =
+      rawPassword.length >= 8 &&
+      /[A-Z]/.test(rawPassword) &&
+      /[a-z]/.test(rawPassword) &&
+      /\d/.test(rawPassword) &&
+      /[^A-Za-z0-9]/.test(rawPassword)
+
+    if (!passwordIsValid) {
+      return NextResponse.json(
+        { success: false, error: 'Password harus minimal 8 karakter serta memiliki huruf kapital, huruf kecil, angka, dan simbol' } as ApiResponse,
         { status: 400 }
       )
     }
@@ -26,7 +43,7 @@ export async function POST(request: NextRequest) {
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single()
 
     if (existingUser) {
@@ -37,15 +54,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await hashPassword(password)
+    const hashedPassword = await hashPassword(rawPassword)
 
     // Insert user
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([
         {
-          name,
-          email,
+          name: normalizedName,
+          email: normalizedEmail,
           password: hashedPassword,
           program_id: programId || null,
           role: 'user',
