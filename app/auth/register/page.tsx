@@ -11,7 +11,6 @@ import { AlertCircle, CheckCircle2, Circle } from 'lucide-react'
 const isGmailAddress = (email: string) => /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email.trim())
 
 const passwordRequirements = (password: string) => [
-  { label: 'Minimal 8 karakter', met: password.length >= 8 },
   { label: 'Memiliki huruf kapital (A-Z)', met: /[A-Z]/.test(password) },
   { label: 'Memiliki huruf kecil (a-z)', met: /[a-z]/.test(password) },
   { label: 'Memiliki angka (0-9)', met: /\d/.test(password) },
@@ -30,11 +29,11 @@ export default function RegisterPage() {
     confirmPassword: '',
   })
   const requirements = passwordRequirements(formData.password)
-  const isPasswordValid = requirements.every(({ met }) => met)
+  const hasRequiredCharacters = requirements.every(({ met }) => met)
+  const isPasswordValid = formData.password.length >= 8 && hasRequiredCharacters
   const isFormValid =
     formData.name.trim().length > 0 &&
-    isGmailAddress(formData.email) &&
-    isPasswordValid &&
+    hasRequiredCharacters &&
     formData.password === formData.confirmPassword
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +57,9 @@ export default function RegisterPage() {
     }
 
     if (!isGmailAddress(formData.email)) {
-      setError('Gunakan alamat email dengan domain @gmail.com')
+      const message = 'Gunakan alamat email dengan domain @gmail.com'
+      setError(message)
+      window.alert(message)
       setLoading(false)
       return
     }
@@ -70,7 +71,9 @@ export default function RegisterPage() {
     }
 
     if (!isPasswordValid) {
-      setError('Password belum memenuhi seluruh persyaratan')
+      const message = 'Password minimal 8 karakter'
+      setError(message)
+      window.alert(message)
       setLoading(false)
       return
     }
@@ -163,11 +166,9 @@ export default function RegisterPage() {
                 placeholder="nama@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
-                pattern="[A-Za-z0-9._%+-]+@gmail\.com"
                 aria-invalid={formData.email.length > 0 && !isGmailAddress(formData.email)}
                 required
               />
-              <p className="text-xs text-muted-foreground">Wajib menggunakan email @gmail.com</p>
             </div>
 
             <div className="space-y-2">
@@ -183,7 +184,7 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 required
               />
-              <ul className="space-y-1 pt-1" aria-label="Persyaratan password">
+              <ul className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1" aria-label="Persyaratan password">
                 {requirements.map(({ label, met }) => (
                   <li key={label} className={`flex items-center gap-2 text-xs ${met ? 'text-green-700' : 'text-muted-foreground'}`}>
                     {met ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-3.5" />}
