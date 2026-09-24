@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+import GridScan from '@/components/ui/grid-scan'
 
 const isGmailAddress = (email: string) => /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email.trim())
 
@@ -110,8 +111,25 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0e0c14] p-4">
+        <GridScan
+          sensitivity={0.55}
+          lineThickness={1}
+          linesColor="#2F293A"
+          gridScale={0.1}
+          scanColor="#FF9FFC"
+          scanOpacity={0.4}
+          enablePost
+          bloomIntensity={0.6}
+          chromaticAberration={0.002}
+          noiseIntensity={0.01}
+          lineJitter={0.1}
+          scanGlow={0.5}
+          scanSoftness={2}
+          enableWebcam={false}
+          showPreview={false}
+        />
+        <Card className="relative z-10 w-full max-w-md border-white/20 bg-white/95 shadow-2xl backdrop-blur-sm">
           <CardContent className="pt-6 flex flex-col items-center gap-4">
             <CheckCircle2 className="w-16 h-16 text-green-500" />
             <h2 className="text-2xl font-bold">Registrasi Berhasil!</h2>
@@ -125,8 +143,25 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0e0c14] p-4">
+      <GridScan
+        sensitivity={0.55}
+        lineThickness={1}
+        linesColor="#2F293A"
+        gridScale={0.1}
+        scanColor="#FF9FFC"
+        scanOpacity={0.4}
+        enablePost
+        bloomIntensity={0.6}
+        chromaticAberration={0.002}
+        noiseIntensity={0.01}
+        lineJitter={0.1}
+        scanGlow={0.5}
+        scanSoftness={2}
+        enableWebcam={false}
+        showPreview={false}
+      />
+      <Card className="relative z-10 w-full max-w-md border-white/20 bg-white/95 shadow-2xl backdrop-blur-sm">
         <CardHeader>
           <CardTitle>Daftar Akun Baru</CardTitle>
           <CardDescription>Buat akun untuk sistem absensi NFC</CardDescription>
