@@ -37,6 +37,18 @@ CREATE INDEX IF NOT EXISTS idx_users_nfc_uid ON users(nfc_uid);
 CREATE INDEX IF NOT EXISTS idx_attendance_user_date ON attendance(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
 
+-- Create admin_logs table for audit trail
+CREATE TABLE IF NOT EXISTS admin_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  action VARCHAR(100) NOT NULL,
+  target_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  details JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON admin_logs(created_at DESC);
+
 -- Insert default program
 INSERT INTO programs (name) VALUES ('Magang/PKL 2026')
 ON CONFLICT DO NOTHING;

@@ -56,6 +56,12 @@ export function DashboardHeader({ userName = 'User', isAdmin = false }: Dashboar
               >
                 Attendance
               </Link>
+              <Link
+                href="/admin/programs"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Program
+              </Link>
             </>
           ) : (
             <>

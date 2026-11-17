@@ -6,6 +6,7 @@ const secret = new TextEncoder().encode(
 )
 
 export interface JWTPayload {
+  [key: string]: unknown
   userId: string
   email: string
   role: string
@@ -30,7 +31,7 @@ export async function createToken(payload: JWTPayload): Promise<string> {
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const verified = await jwtVerify(token, secret)
-    return verified.payload as JWTPayload
+    return verified.payload as unknown as JWTPayload
   } catch (err) {
     console.error('[v0] Token verification failed:', err)
     return null
@@ -82,13 +83,9 @@ export async function getCurrentUser(): Promise<JWTPayload | null> {
  * For production, use bcryptjs package
  */
 export async function hashPassword(password: string): Promise<string> {
-  // This is a simplified implementation using native crypto
-  // For production use, install 'bcryptjs' and use:
-  // import bcrypt from 'bcryptjs'
-  // return bcrypt.hash(password, 10)
-
   const encoder = new TextEncoder()
-  const data = encoder.encode(password + process.env.SALT || 'default-salt')
+  const salt = process.env.SALT || 'default-salt'
+  const data = encoder.encode(password + salt)
   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
@@ -100,5 +97,11 @@ export async function hashPassword(password: string): Promise<string> {
  */
 export async function comparePassword(password: string, hash: string): Promise<boolean> {
   const hashedPassword = await hashPassword(password)
-  return hashedPassword === hash
+  if (hashedPassword === hash) return true
+
+  // Backward compatibility fallback for legacy hash
+  const legacyData = new TextEncoder().encode(password + 'undefined')
+  const legacyBuffer = await crypto.subtle.digest('SHA-256', legacyData)
+  const legacyHash = Array.from(new Uint8Array(legacyBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  return legacyHash === hash
 }

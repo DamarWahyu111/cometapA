@@ -39,6 +39,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (typeof programId !== 'string' || !programId) {
+      return NextResponse.json(
+        { success: false, error: 'Pilih program terlebih dahulu' } as ApiResponse,
+        { status: 400 }
+      )
+    }
+
+    const { data: program, error: programError } = await supabase
+      .from('programs')
+      .select('id')
+      .eq('id', programId)
+      .maybeSingle()
+
+    if (programError || !program) {
+      return NextResponse.json(
+        { success: false, error: 'Program yang dipilih tidak tersedia' } as ApiResponse,
+        { status: 400 }
+      )
+    }
+
     // Check if email already exists
     const { data: existingUser } = await supabase
       .from('users')
@@ -64,7 +84,7 @@ export async function POST(request: NextRequest) {
           name: normalizedName,
           email: normalizedEmail,
           password: hashedPassword,
-          program_id: programId || null,
+          program_id: program.id,
           role: 'user',
         },
       ])

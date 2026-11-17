@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { verifyToken } from '@/lib/auth'
 import { ApiResponse } from '@/lib/types'
 
@@ -31,13 +31,11 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
     const userId = searchParams.get('userId')
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('attendance')
       .select(
-        `
-        id, date, check_in, check_out, created_at,
-        users:user_id (id, name, email)
-      `
+        `id, date, check_in, check_out, created_at, users:user_id (id, name, email)`,
+        { count: 'exact' }
       )
       .order('date', { ascending: false })
 
@@ -54,17 +52,8 @@ export async function GET(request: NextRequest) {
       query = query.lte('date', dateTo)
     }
 
-    // Get total count
-    let countQuery = supabase.from('attendance').select('id', { count: 'exact', head: true })
-
-    if (userId) countQuery = countQuery.eq('user_id', userId)
-    if (dateFrom) countQuery = countQuery.gte('date', dateFrom)
-    if (dateTo) countQuery = countQuery.lte('date', dateTo)
-
-    const { count } = await countQuery
-
-    // Get paginated results
-    const { data: records, error } = await query.range(offset, offset + limit - 1)
+    // Get paginated results (count included in same query)
+    const { data: records, count, error } = await query.range(offset, offset + limit - 1)
 
     if (error) {
       console.error('[v0] Admin attendance error:', error)

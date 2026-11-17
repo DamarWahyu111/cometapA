@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, CheckCircle2, Circle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react'
 import GridScan from '@/components/ui/grid-scan'
+import type { Program } from '@/lib/types'
 
 const isGmailAddress = (email: string) => /^[A-Z0-9._%+-]+@gmail\.com$/i.test(email.trim())
 
@@ -23,21 +24,44 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [programsLoading, setProgramsLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
+    programId: '',
   })
   const requirements = passwordRequirements(formData.password)
   const hasRequiredCharacters = requirements.every(({ met }) => met)
   const isPasswordValid = formData.password.length >= 8 && hasRequiredCharacters
   const isFormValid =
     formData.name.trim().length > 0 &&
+    formData.programId.length > 0 &&
     hasRequiredCharacters &&
     formData.password === formData.confirmPassword
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    const loadPrograms = async () => {
+      try {
+        const response = await fetch('/api/programs')
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
+        setPrograms(data.data || [])
+      } catch {
+        setError('Daftar program gagal dimuat. Muat ulang halaman untuk mencoba lagi.')
+      } finally {
+        setProgramsLoading(false)
+      }
+    }
+
+    loadPrograms()
+  }, [])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -51,7 +75,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     // Validation
-    if (!formData.name.trim() || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.name.trim() || !formData.email || !formData.password || !formData.confirmPassword || !formData.programId) {
       setError('Semua field wajib diisi')
       setLoading(false)
       return
@@ -59,7 +83,6 @@ export default function RegisterPage() {
 
     if (!isGmailAddress(formData.email)) {
       const message = 'Gunakan alamat email dengan domain @gmail.com'
-      setError(message)
       window.alert(message)
       setLoading(false)
       return
@@ -87,6 +110,7 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
+          programId: formData.programId,
         }),
       })
 
@@ -191,6 +215,30 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
+              <label htmlFor="programId" className="text-sm font-medium">
+                Program
+              </label>
+              <select
+                id="programId"
+                name="programId"
+                value={formData.programId}
+                onChange={handleChange}
+                disabled={programsLoading}
+                required
+                className="border-input bg-transparent focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="" disabled>
+                  {programsLoading ? 'Memuat program...' : 'Pilih program'}
+                </option>
+                {programs.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
                 Email
               </label>
@@ -210,15 +258,26 @@ export default function RegisterPage() {
               <label htmlFor="password" className="text-sm font-medium">
                 Password
               </label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               <ul className="grid grid-cols-2 gap-x-3 gap-y-1 pt-1" aria-label="Persyaratan password">
                 {requirements.map(({ label, met }) => (
                   <li key={label} className={`flex items-center gap-2 text-xs ${met ? 'text-green-700' : 'text-muted-foreground'}`}>
@@ -233,16 +292,27 @@ export default function RegisterPage() {
               <label htmlFor="confirmPassword" className="text-sm font-medium">
                 Konfirmasi Password
               </label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                placeholder="••••••"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                aria-invalid={formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="••••••"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  aria-invalid={formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+                  aria-label={showConfirmPassword ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               {formData.confirmPassword.length > 0 && (
                 <p className={`text-xs ${formData.password === formData.confirmPassword ? 'text-green-700' : 'text-destructive'}`}>
                   {formData.password === formData.confirmPassword ? 'Password cocok' : 'Password belum cocok'}
