@@ -1,7 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Lazy singleton — hanya dibuat saat pertama kali diakses (runtime),
-// bukan saat build time, sehingga tidak crash di Vercel build.
 let _client: SupabaseClient | null = null
 
 function getSupabaseAdmin(): SupabaseClient {
@@ -26,9 +25,6 @@ function getSupabaseAdmin(): SupabaseClient {
   return _client
 }
 
-// Hanya untuk Route Handlers/server. Jangan pernah import file ini di browser.
-// Menggunakan Proxy agar tetap bisa di-import sebagai `supabaseAdmin.from(...)` etc.
-// Client baru dibuat saat pertama kali ada method yang dipanggil (lazy init).
 export const supabaseAdmin: SupabaseClient = new Proxy({} as SupabaseClient, {
   get(_target, prop, receiver) {
     const client = getSupabaseAdmin()
